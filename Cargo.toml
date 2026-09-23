@@ -3,6 +3,14 @@ name = "simple-http-server"
 version = "0.1.0"
 edition = "2021"
 
+# [lib]
+# name = "simple_http_server"
+# path = "src/lib.rs"
+#
+# [[bin]]
+# name = "simple-http-server"
+# path = "src/main.rs"
+
 [dependencies]
 
 [profile.release]
