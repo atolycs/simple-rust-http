@@ -9,17 +9,33 @@ pub struct Config {
   pub port: u16,
 }
 
+pub const PKG_NAME: &str = env!("CARGO_PKG_NAME");
+pub const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub fn print_help() {
   println!(
-    r#"
-        simple-http-server - A minimal static file HTTP server
+    r#"simple-http-server - A minimal static file HTTP server
 
-        USAGE:
-            simple-http-server [PORT] [OPTIONS]
-        ARGS:
-            [PORT]  Port number (default: 8000)
-    "#
+USAGE:
+  simple-http-server [PORT] [OPTIONS]
+ARGS:
+  [PORT]  Port number (default: 8000)
+
+OPTIONS:
+  -d, --dir <DIR>   Directory to serve (default: ".")
+  -b, --bind <ADDR> IP Address to bind (default: "0.0.0.0")
+  -v, --version     Show version information
+  -h, --help        Show this help message
+
+EXAMPLE:
+  simple-http-server 3000 -d ./public
+
+"#
   );
+}
+
+pub fn print_version() {
+  println!("{} {}", PKG_NAME, PKG_VERSION)
 }
 
 pub fn parse_args() -> Config {

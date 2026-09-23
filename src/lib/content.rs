@@ -80,6 +80,6 @@ mod tests {
 
   #[test]
   fn html_escape_escapes_special_chars() {
-    assert_eq!(html_escape("<a>&\"b\""), "&lt;a&gt;&amp;&quot;b&qwuot;");
+    assert_eq!(html_escape("<a>&\"b\""), "&lt;a&gt;&amp;&quot;b&quot;");
   }
 }
