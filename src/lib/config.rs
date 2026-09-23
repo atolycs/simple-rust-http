@@ -12,6 +12,12 @@ pub struct Config {
 pub const PKG_NAME: &str = env!("CARGO_PKG_NAME");
 pub const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+pub const PROFILE: &str = if cfg!(debug_assertions) {
+  "debug"
+} else {
+  "release"
+};
+
 pub fn print_help() {
   println!(
     r#"simple-http-server - A minimal static file HTTP server

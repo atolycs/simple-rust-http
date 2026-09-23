@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process;
 use std::thread;
 
-use crate::config::{Config, PKG_NAME, PKG_VERSION};
+use crate::config::{Config, PKG_NAME, PKG_VERSION, PROFILE};
 use crate::content::{build_directory_listing, mime_type};
 use crate::response::send_response;
 use crate::security::resolve_path;
@@ -19,7 +19,7 @@ pub fn run(config: Config) {
       process::exit(1);
     }
   };
-  println!("{} v{}", PKG_NAME, PKG_VERSION);
+  println!("{} v{} ({})", PKG_NAME, PKG_VERSION, PROFILE);
   println!("Serving directory: {}", config.dir.display());
   println!("Server running at: http://{}", addr);
   println!("(Press Ctrl+C to stop server)");
