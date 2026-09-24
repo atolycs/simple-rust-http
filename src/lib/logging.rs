@@ -1,5 +1,8 @@
-use chrono::Local;
-use std::time::{SystemTime, UNIX_EPOCH};
+use chrono::{DateTime, Local};
+use std::{
+  os::macos::raw::stat,
+  time::{SystemTime, UNIX_EPOCH},
+};
 
 // fn civil_from_days(z: i64) -> (i64, u32, u32) {
 //   let z = z + 719468;
@@ -45,36 +48,93 @@ use std::time::{SystemTime, UNIX_EPOCH};
 //     .unwrap_or(0) as i64;
 //   clf_timestamp(secs)
 // }
+// fn clf_timestamp_now() -> String {
+//   Local::now().format("%d/%b/%Y:%H:%M:%S %z").to_string()
+// }
+
 fn clf_timestamp_now() -> String {
-  Local::now().format("%d/%b/%Y:%H:%M:%S %z").to_string()
+  format_clf_timestamp(Local::now())
 }
 
-pub fn log_access(client: &str, method: &str, path: &str, status: &str, body_len: usize) {
-  let status_code = status.split_whitespace().next().unwrap_or("-");
+fn format_clf_timestamp(dt: DateTime<Local>) -> String {
+  dt.format("%d/%b/%Y:%H:%M:%S %z").to_string()
+}
 
+pub fn format_access_log_line(
+  timestamp: &str,
+  client: &str,
+  method: &str,
+  path: &str,
+  status: &str,
+  body_len: usize,
+  user_agent: &str,
+) -> String {
+  let status_code = status.split_whitespace().next().unwrap_or("-");
+  format!(
+    "{} - - [{}] \"{} n{} HTTP/1.1\" {} {} \"-\" \"{}\"",
+    client, timestamp, method, path, status_code, body_len, user_agent
+  )
+}
+
+pub fn log_access(
+  client: &str,
+  method: &str,
+  path: &str,
+  status: &str,
+  body_len: usize,
+  user_agent: &str,
+) {
   println!(
-    "{} - - [{}] \"{} {} HTTP/1.1\" {} {}",
-    client,
-    clf_timestamp_now(),
-    method,
-    path,
-    status_code,
-    body_len
+    "{}",
+    format_access_log_line(
+      &clf_timestamp_now(),
+      client,
+      method,
+      path,
+      status,
+      body_len,
+      user_agent
+    )
   );
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use chrono::TimeZone;
 
   #[test]
-  fn civil_from_days_epoch_is_1970_01_01() {
-    assert_eq!(civil_from_days(0), (1970, 1, 1));
+  fn format_clf_timestamp_known_value() {
+    let dt = Local.with_ymd_and_hms(2026, 9, 23, 8, 3, 36).unwrap();
+    let formatted = format_clf_timestamp(dt);
+
+    assert!(formatted.starts_with("23/Sep/2026:08:03:36"))
   }
 
   #[test]
-  fn clf_timestamp_known_value() {
-    let secs = 1790150616;
-    assert_eq!(clf_timestamp(secs), "23/Sep/2026:08:03:36 +0000");
+  fn clf_timestamp_now_has_expecte_shape() {
+    let ts = clf_timestamp_now();
+    let parts: Vec<&str> = ts.split(' ').collect();
+    assert_eq!(parts.len(), 2, "expected \"<date> <offset>\", got: {ts}");
+    assert_eq!(parts[1].len(), 5, "offset should look like +0900: {ts}");
+
+    let date_parts: Vec<&str> = parts[0].split(':').collect();
+    assert_eq!(
+      date_parts.len(),
+      4,
+      "expected DD/Mon/YYYY:HH:MM:SS, got: {ts}"
+    );
+  }
+  #[test]
+  fn log_access_does_not_panic() {
+    log_access(
+      "127.0.0.1:12345",
+      "GET",
+      "/index.html",
+      "200 OK",
+      1234,
+      "curl/8.5.0",
+    );
+    log_access("-", "-", "-", "400 Bad Request", 0, "-");
   }
 }

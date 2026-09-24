@@ -11,6 +11,7 @@ pub fn send_response(
   client: &str,
   method: &str,
   path: &str,
+  user_agent: &str,
 ) -> std::io::Result<()> {
   let header = format!(
     "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
@@ -21,6 +22,6 @@ pub fn send_response(
   stream.write_all(header.as_bytes())?;
   stream.write_all(body)?;
   let result = stream.flush();
-  log_access(client, method, path, status, body.len());
+  log_access(client, method, path, status, body.len(), user_agent);
   result
 }

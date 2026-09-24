@@ -15,11 +15,9 @@ fn wait_for_file_ready(path: &PathBuf, expected: &[u8]) {
         return;
       }
     }
-
     if Instant::now() >= deadline {
       panic!("file was not ready with in 5 seconds: {}", path.display());
     }
-
     thread::sleep(Duration::from_millis(10));
   }
 }
@@ -29,6 +27,7 @@ fn setup_test_dir(name: &str) -> PathBuf {
   let _ = fs::remove_dir_all(&dir);
 
   fs::create_dir_all(dir.join("sub")).expect("failed to create test dir");
+
   let hello = dir.join("hello.txt");
   let nested = dir.join("sub").join("nested.txt");
 
@@ -47,6 +46,7 @@ fn start_server(dir: PathBuf, port: u16) {
     bind: "127.0.0.1".to_string(),
     port,
   };
+
   thread::spawn(move || {
     server::run(config);
   });
@@ -93,7 +93,6 @@ fn raw_request(port: u16, method: &str, path: &str) -> (String, String, Vec<u8>)
   } else {
     Vec::new()
   };
-
   let header_text = String::from_utf8_lossy(header_bytes).into_owned();
   let mut lines = header_text.lines();
   let status_line = lines.next().unwrap_or("").to_string();
@@ -122,8 +121,9 @@ fn get_nested_file_returns_200() {
   let dir = setup_test_dir("get_nested_file");
   start_server(dir, 18082);
 
-  let (status, _headers, body) = raw_request(18082, "GET", "/sub/nested.txt");
+  let (status, headers, body) = raw_request(18082, "GET", "/sub/nested.txt");
   assert_eq!(status_code(&status), "200");
+  assert!(headers.contains("Content-Type: text/plain"));
   assert_eq!(body, b"nested file");
 }
 
@@ -165,7 +165,7 @@ fn head_request_has_no_body() {
 
   let (status, _headers, body) = raw_request(18086, "HEAD", "/hello.txt");
   assert_eq!(status_code(&status), "200");
-  assert!(body.is_empty());
+  assert!(body.is_empty())
 }
 
 #[test]
@@ -179,8 +179,9 @@ fn path_traversal_attempt_is_rejected() {
 
 #[test]
 fn index_html_is_served_for_directory_when_present() {
-  let dir = setup_test_dir("index.html");
+  let dir = setup_test_dir("index_html");
   fs::write(dir.join("index.html"), b"<h1>welcome</h1>").unwrap();
+
   start_server(dir, 18088);
 
   let (status, headers, body) = raw_request(18088, "GET", "/");

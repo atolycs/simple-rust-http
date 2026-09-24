@@ -59,4 +59,32 @@ mod tests {
       Some(PathBuf::from("/tmp/root/sub/a.txt"))
     );
   }
+  #[test]
+  fn resolve_path_rejects_percent_encoded_parent_dir() {
+    let root = Path::new("/tmp/root");
+    assert!(resolve_path(root, "/%2e%2e/etc/passwd").is_none());
+    assert!(resolve_path(root, "/sub/%2e%2e/etc/passwd").is_none());
+  }
+  #[test]
+  fn resolve_path_rejects_parent_dir_mixed_in_deeper_path() {
+    let root = Path::new("/tmp/root");
+    assert!(resolve_path(root, "/sub/../../etc/passwd").is_none());
+  }
+
+  #[test]
+  fn resolve_path_root_only() {
+    let root = Path::new("/tmp/root");
+    assert_eq!(resolve_path(root, "/"), Some(PathBuf::from("/tmp/root")));
+  }
+
+  #[test]
+  fn percent_decode_handles_trailing_incomplete_escape() {
+    assert_eq!(percent_decode("abc%2"), "abc%2");
+    assert_eq!(percent_decode("abc%"), "abc%");
+  }
+
+  #[test]
+  fn percent_decode_handles_invalid_hex() {
+    assert_eq!(percent_decode("a%zzb"), "a%zzb");
+  }
 }

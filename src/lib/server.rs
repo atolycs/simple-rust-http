@@ -52,6 +52,8 @@ fn handle_client(mut stream: TcpStream, root: PathBuf) {
     return;
   }
 
+  let mut header_lines: Vec<String> = Vec::new();
+
   loop {
     let mut line = String::new();
     match reader.read_line(&mut line) {
@@ -60,9 +62,15 @@ fn handle_client(mut stream: TcpStream, root: PathBuf) {
         if line == "\r\n" || line == "\n" {
           break;
         }
+        header_lines.push(line.trim_end().to_string());
       }
     }
   }
+
+  let user_agent = header_value(&header_lines, "User-Agent")
+    .unwrap_or("-")
+    .to_string();
+
   let parts: Vec<&str> = request_line.trim().split_whitespace().collect();
   if parts.len() < 2 {
     let _ = send_response(
@@ -73,6 +81,7 @@ fn handle_client(mut stream: TcpStream, root: PathBuf) {
       &client,
       "-",
       "-",
+      &user_agent,
     );
     return;
   }
@@ -90,6 +99,7 @@ fn handle_client(mut stream: TcpStream, root: PathBuf) {
       &client,
       method,
       url_path,
+      &user_agent,
     );
     return;
   }
@@ -105,6 +115,7 @@ fn handle_client(mut stream: TcpStream, root: PathBuf) {
         &client,
         method,
         url_path,
+        &user_agent,
       );
       return;
     }
@@ -125,6 +136,7 @@ fn handle_client(mut stream: TcpStream, root: PathBuf) {
       &client,
       method,
       url_path,
+      &user_agent,
     );
     return;
   }
@@ -132,7 +144,7 @@ fn handle_client(mut stream: TcpStream, root: PathBuf) {
   if target.is_dir() {
     let index = target.join("index.html");
     if index.is_file() {
-      serve_file(&mut stream, &index, method, &client, url_path);
+      serve_file(&mut stream, &index, method, &client, url_path, &user_agent);
     } else {
       let listing = build_directory_listing(&target, url_path);
       if method == "HEAD" {
@@ -144,6 +156,7 @@ fn handle_client(mut stream: TcpStream, root: PathBuf) {
           &client,
           method,
           url_path,
+          &user_agent,
         );
       } else {
         let _ = send_response(
@@ -154,22 +167,61 @@ fn handle_client(mut stream: TcpStream, root: PathBuf) {
           &client,
           method,
           url_path,
+          &user_agent,
         );
       }
     }
   } else {
-    serve_file(&mut stream, &target, method, &client, url_path);
+    serve_file(&mut stream, &target, method, &client, url_path, &user_agent);
   }
 }
 
-fn serve_file(stream: &mut TcpStream, path: &Path, method: &str, client: &str, url_path: &str) {
+fn header_value<'a>(lines: &'a [String], name: &str) -> Option<&'a str> {
+  let name_lower = name.to_ascii_lowercase();
+  for line in lines {
+    if let Some(idx) = line.find(':') {
+      let (key, value) = line.split_at(idx);
+      if key.trim().to_ascii_lowercase() == name_lower {
+        return Some(value[1..].trim());
+      }
+    }
+  }
+  None
+}
+
+fn serve_file(
+  stream: &mut TcpStream,
+  path: &Path,
+  method: &str,
+  client: &str,
+  url_path: &str,
+  user_agent: &str,
+) {
   match fs::read(path) {
     Ok(contents) => {
       let ctype = mime_type(path);
       if method == "HEAD" {
-        let _ = send_response(stream, "200 OK", ctype, b"", client, method, url_path);
+        let _ = send_response(
+          stream,
+          "200 OK",
+          ctype,
+          b"",
+          client,
+          method,
+          url_path,
+          &user_agent,
+        );
       } else {
-        let _ = send_response(stream, "200 OK", ctype, &contents, client, method, url_path);
+        let _ = send_response(
+          stream,
+          "200 OK",
+          ctype,
+          &contents,
+          client,
+          method,
+          url_path,
+          &user_agent,
+        );
       }
     }
     Err(_) => {
@@ -181,6 +233,7 @@ fn serve_file(stream: &mut TcpStream, path: &Path, method: &str, client: &str, u
         client,
         method,
         url_path,
+        &user_agent,
       );
     }
   }
