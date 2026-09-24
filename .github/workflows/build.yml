@@ -83,7 +83,7 @@ jobs:
         shell: bash
         env:
           RUSTFLAGS: ${{ (contains(matrix.target, 'windows') || contains(matrix.target, 'musl')) && '-C target-feature=+crt-static' || '' }}
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --target ${{ matrix.target }}
       - name: Verify binary
         shell: bash
         run: file "target/${{ matrix.target }}/release/${{ env.BIN_NAME }}${{ matrix.exe_suffix }}"
