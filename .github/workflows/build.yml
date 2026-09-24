@@ -7,6 +7,7 @@ permissions:
   contents: write
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
     name: Build (${{ matrix.arch_name }})
     strategy:
       fail-fast: false
@@ -28,6 +29,7 @@ jobs:
             use_cross: true
             exe_suffix: ""
           - target: aarch64-apple-darwin
+            os: macos-latest
             arch_name: macos-arm64
             use_cross: false
             exe_suffix: ""
@@ -41,7 +43,6 @@ jobs:
             os: windows-11-arm
             use_cross: false
             exe_suffix: ".exe"
-    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
