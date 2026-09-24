@@ -86,7 +86,7 @@ jobs:
         run: cargo build --target ${{ matrix.target }}
       - name: Verify binary
         shell: bash
-        run: file "target/${{ matrix.target }}/release/${{ env.BIN_NAME }}${{ matrix.exe_suffix }}"
+        run: file "target/${{ matrix.target }}/debug/${{ env.BIN_NAME }}${{ matrix.exe_suffix }}"
       - name: Package artifact
         id: package
         shell: bash
@@ -94,7 +94,7 @@ jobs:
           set -euxo pipefail
           STAGING="${BIN_NAME}-${{ matrix.arch_name }}"
           mkdir -p "$STAGING"
-          cp "target/${{ matrix.target }}/release/${BIN_NAME}${{ matrix.exe_suffix }}" "$STAGING/"
+          cp "target/${{ matrix.target }}/debug/${BIN_NAME}${{ matrix.exe_suffix }}" "$STAGING/"
           if [ -f README.md ]; then cp README.md "$STAGING/"; fi
           tar czf "${STAGING}.tar.gz" "$STAGING"
 
