@@ -20,7 +20,7 @@ pub const PROFILE: &str = if cfg!(debug_assertions) {
 
 pub fn print_help() {
   println!(
-    r#"simple-http-server - A minimal static file HTTP server
+    r#"simple-http-server - A minimal static file HTTP server v{PKG_VERSION}
 
 USAGE:
   simple-http-server [PORT] [OPTIONS]
