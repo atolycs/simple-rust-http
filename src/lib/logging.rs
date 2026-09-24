@@ -67,7 +67,7 @@ pub fn format_access_log_line(
 ) -> String {
   let status_code = status.split_whitespace().next().unwrap_or("-");
   format!(
-    "{} - - [{}] \"{} n{} HTTP/1.1\" {} {} \"-\" \"{}\"",
+    "{} - - [{}] \"{} {} HTTP/1.1\" {} {} \"-\" \"{}\"",
     client, timestamp, method, path, status_code, body_len, user_agent
   )
 }
