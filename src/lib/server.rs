@@ -7,6 +7,7 @@ use std::thread;
 
 use crate::config::{Config, PKG_NAME, PKG_VERSION, PROFILE};
 use crate::content::{build_directory_listing, mime_type};
+use crate::logging::display_path;
 use crate::response::send_response;
 use crate::security::resolve_path;
 
@@ -20,7 +21,7 @@ pub fn run(config: Config) {
     }
   };
   println!("{} v{} ({})", PKG_NAME, PKG_VERSION, PROFILE);
-  println!("Serving directory: {}", config.dir.display());
+  println!("Serving directory: {}", display_path(&config.dir));
   println!("Server running at: http://{}", addr);
   println!("(Press Ctrl+C to stop server)");
 

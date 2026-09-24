@@ -1,4 +1,21 @@
 use chrono::{DateTime, Local};
+use std::path::Path;
+
+pub fn display_path(path: &Path) -> String {
+  let path = path.to_string_lossy();
+
+  #[cfg(windows)]
+  {
+    if let Some(path) = path.strip_prefix(r"\\?\UNC\") {
+      return format!(r"\\{}", path);
+    }
+
+    if let Some(path) = path.strip_prefix(r"\\?\") {
+      return path.to_string();
+    }
+  }
+  path.into_owned()
+}
 
 // fn civil_from_days(z: i64) -> (i64, u32, u32) {
 //   let z = z + 719468;
