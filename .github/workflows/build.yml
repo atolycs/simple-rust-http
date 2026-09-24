@@ -1,0 +1,103 @@
+name: Debug Build
+on:
+  workflow_dispatch:
+env:
+  BIN_NAME: simple-http-server
+permissions:
+  contents: write
+jobs:
+  build:
+    name: Build (${{ matrix.arch_name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            arch_name: amd64
+            os: ubuntu-latest
+            use_cross: false
+            exe_suffix: ""
+          - target: aarch64-unknown-linux-musl
+            arch_name: aarch64
+            os: ubuntu-26.04-arm
+            use_cross: false
+            exe_suffix: ""
+          - target: armv7-unknown-linux-musleabihf
+            arch_name: armhf
+            os: ubuntu-latest
+            use_cross: true
+            exe_suffix: ""
+          - target: aarch64-apple-darwin
+            arch_name: macos-arm64
+            use_cross: false
+            exe_suffix: ""
+          - target: x86_64-pc-windows-msvc
+            arch_name: windows-amd64
+            os: windows-latest
+            use_cross: false
+            exe_suffix: ".exe"
+          - target: aarch64-pc-windows-msvc
+            arch_name: windows-arm64
+            os: windows-11-arm
+            use_cross: false
+            exe_suffix: ".exe"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Cache cargo & cross
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Install cross
+        if: matrix.use_cross
+        run: cargo install cross --git https://github.com/cross-rs/cross --locked
+      - name: Install musl-tools
+        if: contains(matrix.target, 'musl') && !matrix.use_cross
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y musl-tools
+          target_env=$(echo "${{matrix.target}}" | tr 'a-z-' 'A-Z_')
+          echo "CARGO_TARGET_${target_env}_LINKER=musl-gcc" >> "$GITHUB_ENV"
+      - name: Build with cross (Linux armhf)
+        if: matrix.use_cross
+        run: cross build --target ${{ matrix.target }}
+      - name: Build with cargo (native)
+        if: ${{ !matrix.use_cross }}
+        shell: bash
+        env:
+          RUSTFLAGS: ${{ (contains(matrix.target, 'windows') || contains(matrix.target, 'musl')) && '-C target-feature=+crt-static' || '' }}
+        run: cargo build --release --target ${{ matrix.target }}
+      - name: Verify binary
+        shell: bash
+        run: file "target/${{ matrix.target }}/release/${{ env.BIN_NAME }}${{ matrix.exe_suffix }}"
+      - name: Package artifact
+        id: package
+        shell: bash
+        run: |
+          set -euxo pipefail
+          STAGING="${BIN_NAME}-${{ matrix.arch_name }}"
+          mkdir -p "$STAGING"
+          cp "target/${{ matrix.target }}/release/${BIN_NAME}${{ matrix.exe_suffix }}" "$STAGING/"
+          if [ -f README.md ]; then cp README.md "$STAGING/"; fi
+          tar czf "${STAGING}.tar.gz" "$STAGING"
+
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "${STAGING}.tar.gz" > "${STAGING}.tar.gz.sha256"
+          elif command -v shasum >/dev/null 2>&1; then
+            shasum -a 256 "${STAGING}.tar.gz" > "${STAGING}.tar.gz.sha256"
+          else
+            echo "Warning: no sha256 tool found; skipping checksum" >&2
+            : > "${STAGING}.tar.gz.sha256"
+          fi
+
+          echo "archive=${STAGING}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "checksum=${STAGING}.tar.gz.sha256" >> "$GITHUB_OUTPUT"
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.BIN_NAME }}-${{ matrix.arch_name }}
+          path: |
+            ${{ steps.package.outputs.archive }}
+            ${{ steps.package.outputs.checksum }}
